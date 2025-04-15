@@ -1,49 +1,69 @@
 import allure
 import pytest
-from tests.config import LIST_ID, BASE_URL
+from tests.config import LIST_ID, BASE_URL, CREATE_TASK_URL
 
 
 @allure.feature("Тестирование тасков в ClickUp")
 class TestPosts:
 
-    @allure.description(
-        "Создание новой задачи с базовыми параметрами и проверка полей"
-    )
-    def test_create_task_success(self, post_data, task_fixture):
-        with allure.step("Получение данных из task_fixture"):
-            response_data = task_fixture
+    @allure.title("Создание и удаление задачи без использования фикстур")
+    @allure.description("Создание новой задачи, проверка полей, удаление и проверка удаления")
+    def test_create_and_delete_task(self, auth_session, post_data):
+        # Создание задачи
+        with allure.step("Создание задачи через API"):
+            create_response = auth_session.post(
+                f"{BASE_URL}{CREATE_TASK_URL}",
+                json=post_data
+            )
+            assert create_response.status_code == 200, "Ошибка при создании задачи"
+            task = create_response.json()
+            task_id = task["id"]
 
+        # Проверка содержимого ответа
         with allure.step("Проверка наличия ID в ответе"):
-            assert "id" in response_data, "В ответе отсутствует ID задачи"
+            assert "id" in task, "В ответе отсутствует ID задачи"
 
         with allure.step("Проверка совпадения имени задачи"):
-            assert response_data["name"] == post_data["name"], (
+            assert task["name"] == post_data["name"], (
                 f"Имя задачи не совпадает: ожидалось {post_data['name']}, "
-                f"получено {response_data['name']}"
+                f"получено {task['name']}"
             )
 
         if "description" in post_data:
             with allure.step("Проверка совпадения описания задачи"):
-                assert response_data["description"] == post_data[
-                    "description"
-                    ], ("Описание задачи не совпадает")
+                assert task["description"] == post_data["description"], (
+                    "Описание задачи не совпадает"
+                )
 
         if "status" in post_data:
             with allure.step("Проверка совпадения статуса задачи"):
-                assert response_data["status"]["status"] == post_data["status"], (
+                assert task["status"]["status"] == post_data["status"], (
                     "Статус задачи не совпадает"
                 )
 
         with allure.step("Проверка совпадения ID списка"):
-            assert int(response_data["list"]["id"]) == LIST_ID, (
+            assert int(task["list"]["id"]) == LIST_ID, (
                 f"ID списка не совпадает: ожидалось {LIST_ID}, "
-                f"получено {response_data['list']['id']}"
+                f"получено {task['list']['id']}"
             )
 
         with allure.step("Проверка URL задачи"):
-            assert "url" in response_data and response_data["url"].startswith(
-                "https://app.clickup.com/t/"
-            ), "URL задачи некорректный или отсутствует"
+            assert "url" in task and task["url"].startswith(
+                "https://app.clickup.com/t/"), (
+                "URL задачи некорректный или отсутствует"
+            )
+
+        # Удаление задачи
+        with allure.step("Удаление созданной задачи"):
+            delete_response = auth_session.delete(
+                f"{BASE_URL}/v2/task/{task_id}"
+            )
+            assert delete_response.status_code == 204, "Ошибка при удалении задачи"
+
+        # Проверка удаления
+        with allure.step("Проверка, что задача удалена"):
+            check_response = auth_session.get(f"{BASE_URL}/v2/task/{task_id}")
+            assert check_response.status_code == 404, "Задача не была удалена"
     
     @allure.label("layer", "api")
     @allure.tag("негативный", "создание_задачи")

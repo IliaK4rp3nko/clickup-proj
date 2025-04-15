@@ -1,0 +1,7 @@
+
+.env
+*.env
+venv
+.vscode
+.pytest_cachegit rm --cached .env
+__pycache__
