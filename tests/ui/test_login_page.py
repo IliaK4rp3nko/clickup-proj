@@ -6,7 +6,7 @@ from utils.helpers import CLICKUP_EMAIL, CLICKUP_PASSWORD
 WRONG_PASSWORD = "qwertyuiop"
 ERROR_TEXT = "Incorrect password for this email."
 
-@allure.title("Проверка логина с некорректным и корректным паролем")
+@allure.title("Проверка логина c корректным паролем")
 def test_login(browser):
     page = browser.new_page()
     login_page = LoginPage(page)
@@ -19,7 +19,7 @@ def test_login(browser):
             "Не удалось попасть на страницу профиля"
         )
     
-@allure.title("Проверка логина с некорректным и корректным паролем")
+@allure.title("Проверка логина с некорректным паролем")
 def test_login_with_wrong_password(browser):
     page = browser.new_page()
     login_page = LoginPage(page)

@@ -1,10 +1,11 @@
 import allure
 from pages.base_page import BasePage
+from tests.config import WORKSPACE_ID, FOLDER_ID
 
 class ProfilePage(BasePage):
     def __init__(self, page):
         super().__init__(page)
-        self._endpoint = '90151055614/v/l/2kypqw7y-335'
+        self._endpoint = f'{WORKSPACE_ID}/v/l/{FOLDER_ID}'
 
     WORKSPASE_TEXT = "Ilia Karpenko's Workspace"
     HOME_TEXT = "Home"
