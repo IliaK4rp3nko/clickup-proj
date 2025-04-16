@@ -1,6 +1,7 @@
 import allure
 import pytest
 from config import BASE_URL, LIST_ID
+from ui.test_board_page import TASK_NAME
 from playwright.sync_api import sync_playwright
 from api_clients.task_api import ClickUpClient
 from utils.helpers import CLICKUP_API_KEY
@@ -76,3 +77,18 @@ def browser():
     yield browser
     browser.close()
     playwright.stop()
+
+@pytest.fixture
+def delete_task_if_exists(clickup_client):
+    def _delete():
+        with allure.step("Проверяем наличие таска и удаляем его, если найден"):
+            response = clickup_client.get_task_list(LIST_ID)
+            task_id = clickup_client.get_task_id_by_name(response, TASK_NAME)
+
+            if task_id:
+                delete_response = clickup_client.delete_task(task_id)
+                assert delete_response.status_code == 204, f"Не удалось удалить таск {task_id}"
+            else:
+                print(f"Таск с названием '{TASK_NAME}' не найден — ничего не удаляем")
+
+    yield _delete

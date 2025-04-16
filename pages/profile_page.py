@@ -46,3 +46,10 @@ class ProfilePage(BasePage):
 
     def task_does_not_exist(self, task_name):
         self.assert_text_not_on_page(task_name)
+
+    def task_exist(self, task_name):
+        try:
+            self.assert_text_on_page(task_name)
+            return True
+        except AssertionError:
+            return False

@@ -1,6 +1,7 @@
 import allure
 import requests
 
+
 class ClickUpClient:
     def __init__(self, base_url, api_key):
         self.base_url = base_url
@@ -41,3 +42,18 @@ class ClickUpClient:
         return self.session.get(
             f"{self.base_url}/v2/task/{task_id}"
         )
+
+    @allure.step("Получение списка тасков через API")
+    def get_task_list(self, list_id):
+        return self.session.get(
+            f"{self.base_url}/v2/list/{list_id}/task"
+        )
+
+    @allure.step("Получение id таска по названию через API")
+    def get_task_id_by_name(self, response, task_name):
+        get_response = response.json()
+        if "tasks" in get_response:
+            for task in get_response["tasks"]:
+                if task["name"] == task_name:
+                    return task["id"]
+        return None
