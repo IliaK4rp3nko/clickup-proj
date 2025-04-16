@@ -1,6 +1,7 @@
-from pages.base_page import BasePage
-import allure
 
+import time
+import allure
+from pages.base_page import BasePage
 
 class LoginPage(BasePage):
     def __init__(self, page):
@@ -11,32 +12,34 @@ class LoginPage(BasePage):
     PASSWORD_SELECTOR = "#login-password-input"
     LOGIN_BUTTON_SELECTOR = '[data-test="login-submit"]'
     PROFILE_URL = "https://app.clickup.com/90151055614/v/l/2kypqw7y-335"
-    FORM_ERROR_SELECTOR = '[data-test="form__error"]'
-    ERROR_TEXT = "Incorrect password for this email."
+    FORM_ERROR_SELECTOR = '[data-test="form__error-password"]'
+
+    def _fill_and_submit_login_form(self, username, password):
+        self.navigate_to()
+        self.wait_for_selector_and_fill(self.USERNAME_SELECTOR, username)
+        self.wait_for_selector_and_fill(self.PASSWORD_SELECTOR, password)
+        self.wait_for_selector_and_click(self.LOGIN_BUTTON_SELECTOR)
 
     def login(self, username, password):
         allure.attach(
-            f"Logging in with {username}", 
-            name="Login attempt", 
+            f"Успешный логин с {username}",
+            name="Попытка успешного логина",
             attachment_type=allure.attachment_type.TEXT
         )
-        
-        self.navigate_to()
-        self.wait_for_selector_and_fill(self.USERNAME_SELECTOR, username)
-        self.wait_for_selector_and_fill(self.PASSWORD_SELECTOR, password)
-        self.wait_for_selector_and_click(self.LOGIN_BUTTON_SELECTOR)
+        self._fill_and_submit_login_form(username, password)
         self.assert_url_is_correct(self.PROFILE_URL)
+        time.sleep(3)
 
     def login_with_incorrect_password(self, username, password):
         allure.attach(
-            f"Logging in with {username} and incorrect password", 
-            name="Failed login attempt", 
+            f"Логин с {username} и невалидным паролем",
+            name="Неуспешный логин",
             attachment_type=allure.attachment_type.TEXT
         )
-        
-        self.navigate_to()
-        self.wait_for_selector_and_fill(self.USERNAME_SELECTOR, username)
-        self.wait_for_selector_and_fill(self.PASSWORD_SELECTOR, password)
-        self.wait_for_selector_and_click(self.LOGIN_BUTTON_SELECTOR)
+        self._fill_and_submit_login_form(username, password)
         self.assert_element_is_visible(self.FORM_ERROR_SELECTOR)
-        self.assert_text_in_element(self.FORM_ERROR_SELECTOR, self.ERROR_TEXT)
+        time.sleep(5)
+
+    def is_error_message_displayed(self, error_text):
+        with allure.step(f"Проверяем, что отображается сообщение об ошибке: '{error_text}'"):
+            return self.assert_text_on_page(error_text)

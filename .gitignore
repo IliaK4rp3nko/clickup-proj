@@ -1,7 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
 
+# Env
 .env
 *.env
-venv
-.vscode
-.pytest_cachegit rm --cached .env
-__pycache__
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# pytest
+.pytest_cache/
+.cache/
+.coverage
+pytest.ini
+
+
+# MyPy
+.mypy_cache/
+
+# Allure
+allure-report/
+allure-results/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# linter
+.pylintrc
+.flake8
