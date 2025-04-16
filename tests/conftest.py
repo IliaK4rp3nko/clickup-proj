@@ -1,99 +1,76 @@
 import allure
 import pytest
-import requests
-from utils.helpers import CLICKUP_API_KEY
-from config import BASE_URL, CREATE_TASK_URL
-
-import pytest
+from config import BASE_URL, LIST_ID
 from playwright.sync_api import sync_playwright
+from api_clients.task_api import ClickUpClient
+from utils.helpers import CLICKUP_API_KEY
 
-
-@allure.title("Фикстура авторизованной сессии")
 @pytest.fixture(scope="session")
-def auth_session():
-    with allure.step("Создание сессии авторизации"):
-        session = requests.session()
-        session.headers.update({
-            'Authorization': f'{CLICKUP_API_KEY}',
-            'Content-Type': 'application/json'
-        })
-    return session
+def clickup_client():
+    return ClickUpClient(
+        base_url=BASE_URL,
+        api_key=CLICKUP_API_KEY
+    )
 
-@allure.title("Фикстура данных для создания задачи")
 @pytest.fixture()
 def post_data():
     with allure.step("Формирование валидных данных задачи"):
-        data = {
+        return {
             "name": "My First Task from API",
             "description": "Created via ClickUp API 🎯",
             "status": "to do"
         }
-    return data
 
-@allure.title("Фикстура данных для обновления задачи")
 @pytest.fixture()
 def updated_data():
-    with allure.step("Формирование обновлённых данных для PUT-запроса"):
-        data = {
+    with allure.step("Формирование обновлённых данных"):
+        return {
             "name": "Updated data",
             "description": "Updated description",
             "status": "in progress"
         }
-    return data
 
-@allure.title("Фикстура с невалидными данными")
 @pytest.fixture()
 def invalid_data():
-    with allure.step("Формирование невалидных данных задачи"):
-        data = {
+    with allure.step("Формирование невалидных данных"):
+        return {
             "name": "",
             "description": "12345",
             "status": "not_a_status"
         }
-    return data
 
-@allure.title("Фикстура создания и удаления задачи")
 @pytest.fixture
-def task_fixture(auth_session, post_data):
-    with allure.step("Создание задачи через API"):
-        create_response = auth_session.post(
-            f"{BASE_URL}{CREATE_TASK_URL}",
-            json=post_data
-        )
-        assert create_response.status_code == 200,(
-            "Ошибка при создании задачи")
+def task_fixture(clickup_client, post_data):
+    list_id = LIST_ID
+
+    # Создание задачи
+    with allure.step("Создание задачи"):
+        create_response = clickup_client.create_task(list_id, post_data)
+        assert create_response.status_code == 200, "Ошибка создания задачи"
         task = create_response.json()
         task_id = task["id"]
 
-        yield task
+    yield task
 
+    # Удаление задачи
     with allure.step("Удаление задачи"):
-        delete_response = auth_session.delete(
-            f"{BASE_URL}/v2/task/{task_id}"
-        )
-        assert delete_response.status_code == 204,(
-            "Ошибка при удалении задачи"
-        )
+        delete_response = clickup_client.delete_task(task_id)
+        assert delete_response.status_code == 204, "Ошибка удаления"
 
-    with allure.step("Проверка, что задача удалена"):
-        check_response = auth_session.get(f"{BASE_URL}/v2/task/{task_id}")
-        assert check_response.status_code == 404, "Задача не была удалена"
-    
-    
-@allure.title("Фикстура создания задачи")
+    # Проверка удаления
+    with allure.step("Проверка удаления"):
+        check_response = clickup_client.check_task_exists(task_id)
+        assert check_response.status_code == 404, "Задача не удалена"
+
 @pytest.fixture
-def task_fixture_only_create(auth_session, post_data):
-    with allure.step("Создание задачи через API"):
-        create_response = auth_session.post(
-            f"{BASE_URL}{CREATE_TASK_URL}",
-            json=post_data
-            )
-        assert create_response.status_code == 200,(
-            "Ошибка при создании задачи")
+def task_fixture_only_create(clickup_client, post_data):
+    list_id = LIST_ID
+    with allure.step("Создание задачи"):
+        create_response = clickup_client.create_task(list_id, post_data)
+        assert create_response.status_code == 200, "Ошибка создания"
         task = create_response.json()
-        task_id = task["id"]
 
-        yield task
+    yield task
 
 @pytest.fixture(scope='session')
 def browser():

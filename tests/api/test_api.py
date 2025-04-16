@@ -1,20 +1,16 @@
 import allure
 import pytest
-from tests.config import LIST_ID, BASE_URL, CREATE_TASK_URL
-
+from tests.config import LIST_ID
 
 @allure.feature("Тестирование тасков в ClickUp")
 class TestPosts:
 
     @allure.title("Создание и удаление задачи без использования фикстур")
     @allure.description("Создание новой задачи, проверка полей, удаление и проверка удаления")
-    def test_create_and_delete_task(self, auth_session, post_data):
+    def test_create_and_delete_task(self, clickup_client, post_data):
         # Создание задачи
         with allure.step("Создание задачи через API"):
-            create_response = auth_session.post(
-                f"{BASE_URL}{CREATE_TASK_URL}",
-                json=post_data
-            )
+            create_response = clickup_client.create_task(LIST_ID, post_data)
             assert create_response.status_code == 200, "Ошибка при создании задачи"
             task = create_response.json()
             task_id = task["id"]
@@ -55,16 +51,14 @@ class TestPosts:
 
         # Удаление задачи
         with allure.step("Удаление созданной задачи"):
-            delete_response = auth_session.delete(
-                f"{BASE_URL}/v2/task/{task_id}"
-            )
+            delete_response = clickup_client.delete_task(task_id)
             assert delete_response.status_code == 204, "Ошибка при удалении задачи"
 
         # Проверка удаления
         with allure.step("Проверка, что задача удалена"):
-            check_response = auth_session.get(f"{BASE_URL}/v2/task/{task_id}")
+            check_response = clickup_client.check_task_exists(task_id)
             assert check_response.status_code == 404, "Задача не была удалена"
-    
+
     @allure.label("layer", "api")
     @allure.tag("негативный", "создание_задачи")
     @allure.description(
@@ -96,18 +90,14 @@ class TestPosts:
         ]
     )
     def test_create_task_invalid_data_parametrized(
-        self, auth_session, invalid_data, request
+        self, clickup_client, invalid_data, request
     ):
-        # Устанавливаем заголовок для каждого параметра в Allure
         allure.dynamic.title(
             f"Невалидный POST: {request.node.callspec.id}"
         )
 
         with allure.step("Отправка запроса с невалидными данными"):
-            response = auth_session.post(
-                f"{BASE_URL}/v2/list/{LIST_ID}/task",
-                json=invalid_data
-            )
+            response = clickup_client.create_task(LIST_ID, invalid_data)
 
         with allure.step("Проверка кода ответа (400 или 422)"):
             assert response.status_code in [400, 422], (
@@ -125,163 +115,84 @@ class TestPosts:
                 pytest.fail("Ошибка при декодировании JSON-ответа")
 
     @allure.description("Получение таска и проверка полей ответа")
-    def test_get_task_success(self, auth_session, task_fixture):
+    def test_get_task_success(self, clickup_client, task_fixture):
         with allure.step("Получение ID задачи из фикстуры"):
             task_id = task_fixture["id"]
+        
         with allure.step("Получение таска через GET"):
-            get_response = auth_session.get(
-                f"{BASE_URL}/v2/task/{task_id}"
-                )
-            assert get_response.status_code == 200, (
-                "Ошибка при получении таска"
-                )
+            get_response = clickup_client.get_task(task_id)
+            assert get_response.status_code == 200, "Ошибка при получении таска"
 
-        with allure.step("Проверка совпадения ID и имени таска"):
+        with allure.step("Проверка совпадения данных"):
             task_data = get_response.json()
             assert task_data["id"] == task_id, "ID задачи не совпадает"
-            assert task_data["name"] == task_fixture["name"], (
-                "Имя таска не совпадает"
-                )
-            assert task_data["description"] == task_fixture["description"], (
-                "Описание таска не совпадает"
-                )
-            assert task_data["status"] == task_fixture["status"], (
-                    "Статус таска не совпадает"
-                )
+            assert task_data["name"] == task_fixture["name"], "Имя не совпадает"
+            assert task_data["description"] == task_fixture["description"], "Описание не совпадает"
+            assert task_data["status"]["status"] == task_fixture["status"]["status"], "Статус не совпадает"
     
-    @allure.description(
-        "Попытка получения несуществующего таска и проверка полей ответа"
-    )
-    def test_get_task_not_found(self, auth_session):
-        with allure.step("Задание несуществующего ID задачи"):
-            task_id = "wrong_id"
+    @allure.description("Попытка получения несуществующего таска")
+    def test_get_task_not_found(self, clickup_client):
+        with allure.step("Использование невалидного ID"):
+            response = clickup_client.get_task("wrong_id")
+            assert response.status_code == 401, "Ожидалась ошибка авторизации"
 
-        with allure.step("Попытка получить задачу с несуществующим ID"):
-            get_response = auth_session.get(
-                f"{BASE_URL}/v2/task/{task_id}"
-            )
-            assert get_response.status_code == 401, (
-                "Ошибка при получении задачи"
-            )
-
-        with allure.step("Проверка наличия ключей err и ECODE"):
-            response_json = get_response.json()
-            assert "err" in response_json, "Нет ключа err в ответе"
-            assert "ECODE" in response_json, "Нет ключа ECODE в ответе"
-
-    @allure.description(
-        "Обновление существующей задачи и проверка обновлённых полей"
-    )
-    def test_update_task_success(
-        self, auth_session, task_fixture, updated_data
-    ):
-        with allure.step("Получение ID задачи для обновления"):
-            task_id = task_fixture["id"]
-
-        with allure.step("Отправка PUT-запроса для обновления задачи"):
-            update_response = auth_session.put(
-                f"{BASE_URL}/v2/task/{task_id}",
-                json=updated_data
-            )
-            assert update_response.status_code == 200, (
-                "Задача не обновилась"
-            )
-
-        with allure.step("Проверка обновлённых данных задачи"):
-            updated_task = update_response.json()
-            assert updated_task["id"] == task_id, (
-                "ID задачи не совпадает"
-            )
-            assert updated_task["name"] == updated_data["name"], (
-                "Имя задачи не обновилось"
-            )
-            assert updated_task["description"] == updated_data["description"], (
-                "Описание не обновилось"
-            )
-            assert updated_task["status"]["status"] == updated_data["status"], (
-                "Статус задачи не обновился"
-            )
-    
-    @allure.description(
-        "Попытка обновления задачи с несуществующим ID"
-    )
-    def test_update_task_not_found(self, auth_session, updated_data):
-        with allure.step("Задание несуществующего ID"):
-            fake_task_id = "nonexistent_task_id"
-
-        with allure.step("Попытка обновить задачу с несуществующим ID"):
-            response = auth_session.put(
-                f"{BASE_URL}/v2/task/{fake_task_id}",
-                json=updated_data
-            )
-            assert response.status_code == 404 or response.status_code == 401, (
-                f"Ожидался статус 404 или 401, получен {response.status_code}"
-            )
-
-        with allure.step("Проверка наличия сообщения об ошибке"):
+        with allure.step("Проверка структуры ошибки"):
             response_json = response.json()
             assert "err" in response_json, "Нет ключа err в ответе"
             assert "ECODE" in response_json, "Нет ключа ECODE в ответе"
 
-    @allure.description(
-        "Попытка обновления задачи с некорректными данными"
-    )
-    def test_update_task_invalid_data(
-        self, auth_session, task_fixture, invalid_data
-    ):
-        with allure.step("Получение ID задачи"):
-            task_id = task_fixture["id"]
+    @allure.description("Обновление существующей задачи")
+    def test_update_task_success(self, clickup_client, task_fixture, updated_data):
+        task_id = task_fixture["id"]
+        
+        with allure.step("Отправка PUT-запроса"):
+            update_response = clickup_client.update_task(task_id, updated_data)
+            assert update_response.status_code == 200, "Ошибка обновления"
 
-        with allure.step("Попытка обновления задачи с невалидными полями"):
-            response = auth_session.put(
-                f"{BASE_URL}/v2/task/{task_id}",
-                json=invalid_data
-            )
-            assert response.status_code == 400, (
-                f"Ожидался статус 400, получен {response.status_code}"
-            )
+        with allure.step("Проверка обновлённых данных"):
+            updated_task = update_response.json()
+            assert updated_task["name"] == updated_data["name"], "Имя не обновилось"
+            assert updated_task["description"] == updated_data["description"], "Описание не обновилось"
+            assert updated_task["status"]["status"] == updated_data["status"], "Статус не обновился"
+    
+    @allure.description("Попытка обновления несуществующей задачи")
+    def test_update_task_not_found(self, clickup_client, updated_data):
+        with allure.step("Использование несуществующего ID"):
+            response = clickup_client.update_task("nonexistent_id", updated_data)
+            assert response.status_code in [401, 404], "Неверный статус код"
+
+        with allure.step("Проверка структуры ошибки"):
+            response_json = response.json()
+            assert "err" in response_json, "Нет ключа err в ответе"
+            assert "ECODE" in response_json, "Нет ключа ECODE в ответе"
+
+    @allure.description("Попытка обновления с невалидными данными")
+    def test_update_task_invalid_data(self, clickup_client, task_fixture, invalid_data):
+        task_id = task_fixture["id"]
+        
+        with allure.step("Отправка невалидных данных"):
+            response = clickup_client.update_task(task_id, invalid_data)
+            assert response.status_code == 400, "Ожидалась ошибка валидации"
 
         with allure.step("Проверка сообщения об ошибке"):
             response_json = response.json()
-            assert "err" in response_json or "message" in response_json, (
-                "Нет сообщения об ошибке в ответе"
-            )
+            assert "err" in response_json or "message" in response_json, "Нет сообщения об ошибке"
     
-    @allure.description(
-        "Удаление задачи с корректными данными"
-    )
-    def test_delete_task_success(self,
-                                 auth_session,
-                                 task_fixture_only_create):
-        
+    @allure.description("Удаление задачи")
+    def test_delete_task_success(self, clickup_client, task_fixture_only_create):
         task_id = task_fixture_only_create["id"]
-
-        with allure.step("Удаление задачи"):
-            response = auth_session.delete(f"{BASE_URL}/v2/task/{task_id}")
-            
-        with allure.step("Проверка кода ответа на удаление"):
-            assert response.status_code == 204, (
-                "Ожидался статус 204 при успешном удалении"
-                )
         
-        with allure.step("Проверка отсутствия текста в ответе"):
-            assert response.text == "", "Ожидается пустое тело ответа"
+        with allure.step("Удаление задачи"):
+            response = clickup_client.delete_task(task_id)
+            assert response.status_code == 204, "Ошибка удаления"
+            assert response.text == "", "Тело ответа не пустое"
 
-        with allure.step("Проверка, что задача действительно удалена"):
-            check = auth_session.get(f"{BASE_URL}/v2/task/{task_id}")
-            assert check.status_code == 404, "Ожидался статус 404 для удалённой задачи"
+        with allure.step("Проверка отсутствия задачи"):
+            check_response = clickup_client.check_task_exists(task_id)
+            assert check_response.status_code == 404, "Задача не удалена"
     
-    @allure.description(
-        "Удаление задачи с корректными данными"
-    )
-    def test_delete_task_fail(self, auth_session):
-        
-        wrong_id = 'qwejgfskip3'
-
-        with allure.step("Удаление задачи"):
-            response = auth_session.delete(f"{BASE_URL}/v2/task/{wrong_id}")
-            
-        with allure.step("Проверка кода ответа на удаление"):
-            assert response.status_code == 401, (
-                "Ожидался статус 401 при файле удаления"
-                )
+    @allure.description("Попытка удаления несуществующей задачи")
+    def test_delete_task_fail(self, clickup_client):
+        with allure.step("Использование невалидного ID"):
+            response = clickup_client.delete_task("invalid_task_id")
+            assert response.status_code == 401, "Неверный статус код"
