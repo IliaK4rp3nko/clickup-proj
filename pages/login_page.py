@@ -1,6 +1,6 @@
-
 import time
 import allure
+from tests.config import BASE_URL_FRONT, WORKSPACE_ID, FOLDER_ID
 from pages.base_page import BasePage
 
 class LoginPage(BasePage):
@@ -11,7 +11,7 @@ class LoginPage(BasePage):
     USERNAME_SELECTOR = "#login-email-input"
     PASSWORD_SELECTOR = "#login-password-input"
     LOGIN_BUTTON_SELECTOR = '[data-test="login-submit"]'
-    PROFILE_URL = "https://app.clickup.com/90151055614/v/l/2kypqw7y-335"
+    PROFILE_URL = f"{BASE_URL_FRONT}{WORKSPACE_ID}/v/l/{FOLDER_ID}"
     FORM_ERROR_SELECTOR = '[data-test="form__error-password"]'
 
     def _fill_and_submit_login_form(self, username, password):

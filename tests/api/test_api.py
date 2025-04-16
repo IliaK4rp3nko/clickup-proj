@@ -8,14 +8,14 @@ class TestPosts:
     @allure.title("Создание и удаление задачи без использования фикстур")
     @allure.description("Создание новой задачи, проверка полей, удаление и проверка удаления")
     def test_create_and_delete_task(self, clickup_client, post_data):
-        # Создание задачи
+
         with allure.step("Создание задачи через API"):
             create_response = clickup_client.create_task(LIST_ID, post_data)
             assert create_response.status_code == 200, "Ошибка при создании задачи"
             task = create_response.json()
             task_id = task["id"]
 
-        # Проверка содержимого ответа
+
         with allure.step("Проверка наличия ID в ответе"):
             assert "id" in task, "В ответе отсутствует ID задачи"
 
@@ -49,12 +49,10 @@ class TestPosts:
                 "URL задачи некорректный или отсутствует"
             )
 
-        # Удаление задачи
         with allure.step("Удаление созданной задачи"):
             delete_response = clickup_client.delete_task(task_id)
             assert delete_response.status_code == 204, "Ошибка при удалении задачи"
 
-        # Проверка удаления
         with allure.step("Проверка, что задача удалена"):
             check_response = clickup_client.check_task_exists(task_id)
             assert check_response.status_code == 404, "Задача не была удалена"

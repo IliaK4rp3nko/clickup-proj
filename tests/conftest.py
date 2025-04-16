@@ -43,7 +43,6 @@ def invalid_data():
 def task_fixture(clickup_client, post_data):
     list_id = LIST_ID
 
-    # Создание задачи
     with allure.step("Создание задачи"):
         create_response = clickup_client.create_task(list_id, post_data)
         assert create_response.status_code == 200, "Ошибка создания задачи"
@@ -52,12 +51,10 @@ def task_fixture(clickup_client, post_data):
 
     yield task
 
-    # Удаление задачи
     with allure.step("Удаление задачи"):
         delete_response = clickup_client.delete_task(task_id)
         assert delete_response.status_code == 204, "Ошибка удаления"
 
-    # Проверка удаления
     with allure.step("Проверка удаления"):
         check_response = clickup_client.check_task_exists(task_id)
         assert check_response.status_code == 404, "Задача не удалена"
