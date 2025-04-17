@@ -2,6 +2,7 @@ import allure
 from pages.base_page import BasePage
 from tests.config import WORKSPACE_ID, FOLDER_ID
 
+
 class ProfilePage(BasePage):
     def __init__(self, page):
         super().__init__(page)
@@ -24,8 +25,7 @@ class ProfilePage(BasePage):
     def check_profile_page(self):
         with allure.step(
             f"Проверяем наличие текста на странице профиля: "
-            f"{self.WORKSPASE_TEXT}, {self.HOME_TEXT}, {self.INBOX_TEXT}"
-            ):
+            f"{self.WORKSPASE_TEXT}, {self.HOME_TEXT}, {self.INBOX_TEXT}"):
             self.assert_text_on_page(self.WORKSPASE_TEXT)
             self.assert_text_on_page(self.HOME_TEXT)
             self.assert_text_on_page(self.INBOX_TEXT)

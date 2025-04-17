@@ -1,5 +1,6 @@
 from playwright.sync_api import expect
 
+
 class BasePage:
     __BASE_URL = "https://app.clickup.com/"
 
@@ -26,7 +27,7 @@ class BasePage:
         self.page.wait_for_selector(selector)
         self.page.fill(selector, value)
 
-    def wait_for_selector_and_type(self, selector, value,  delay):
+    def wait_for_selector_and_type(self, selector, value, delay):
         self.page.wait_for_selector(selector)
         self.page.type(selector, value, delay=delay)
 

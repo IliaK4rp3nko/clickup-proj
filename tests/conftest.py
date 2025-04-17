@@ -6,12 +6,14 @@ from playwright.sync_api import sync_playwright
 from api_clients.task_api import ClickUpClient
 from utils.helpers import CLICKUP_API_KEY
 
+
 @pytest.fixture(scope="session")
 def clickup_client():
     return ClickUpClient(
         base_url=BASE_URL,
         api_key=CLICKUP_API_KEY
     )
+
 
 @pytest.fixture()
 def post_data():
@@ -22,6 +24,7 @@ def post_data():
             "status": "to do"
         }
 
+
 @pytest.fixture()
 def updated_data():
     with allure.step("Формирование обновлённых данных"):
@@ -31,6 +34,7 @@ def updated_data():
             "status": "in progress"
         }
 
+
 @pytest.fixture()
 def invalid_data():
     with allure.step("Формирование невалидных данных"):
@@ -39,6 +43,7 @@ def invalid_data():
             "description": "12345",
             "status": "not_a_status"
         }
+
 
 @pytest.fixture
 def task_fixture(clickup_client, post_data):
@@ -60,6 +65,7 @@ def task_fixture(clickup_client, post_data):
         check_response = clickup_client.check_task_exists(task_id)
         assert check_response.status_code == 404, "Задача не удалена"
 
+
 @pytest.fixture
 def task_fixture_only_create(clickup_client, post_data):
     list_id = LIST_ID
@@ -70,6 +76,7 @@ def task_fixture_only_create(clickup_client, post_data):
 
     yield task
 
+
 @pytest.fixture(scope='session')
 def browser():
     playwright = sync_playwright().start()
@@ -77,6 +84,7 @@ def browser():
     yield browser
     browser.close()
     playwright.stop()
+
 
 @pytest.fixture
 def delete_task_if_exists(clickup_client):

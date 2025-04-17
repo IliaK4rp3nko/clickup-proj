@@ -3,6 +3,7 @@ import allure
 from tests.config import BASE_URL_FRONT, WORKSPACE_ID, FOLDER_ID
 from pages.base_page import BasePage
 
+
 class LoginPage(BasePage):
     def __init__(self, page):
         super().__init__(page)
