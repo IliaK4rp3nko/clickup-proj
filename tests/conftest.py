@@ -1,6 +1,6 @@
 import allure
 import pytest
-from config import BASE_URL, LIST_ID
+from config import BASE_URL
 from ui.test_board_page import TASK_NAME
 from playwright.sync_api import sync_playwright
 from api_clients.task_api import ClickUpClient
@@ -13,6 +13,11 @@ def clickup_client():
         base_url=BASE_URL,
         api_key=CLICKUP_API_KEY
     )
+
+
+@pytest.fixture
+def list_id_fixture(clickup_client):
+    return clickup_client.get_list_id()
 
 
 @pytest.fixture()
@@ -46,11 +51,10 @@ def invalid_data():
 
 
 @pytest.fixture
-def task_fixture(clickup_client, post_data):
-    list_id = LIST_ID
+def task_fixture(clickup_client, post_data, list_id_fixture):
 
     with allure.step("Создание задачи"):
-        create_response = clickup_client.create_task(list_id, post_data)
+        create_response = clickup_client.create_task(list_id_fixture, post_data)
         assert create_response.status_code == 200, "Ошибка создания задачи"
         task = create_response.json()
         task_id = task["id"]
@@ -67,10 +71,10 @@ def task_fixture(clickup_client, post_data):
 
 
 @pytest.fixture
-def task_fixture_only_create(clickup_client, post_data):
-    list_id = LIST_ID
+def task_fixture_only_create(clickup_client, post_data, list_id_fixture):
+
     with allure.step("Создание задачи"):
-        create_response = clickup_client.create_task(list_id, post_data)
+        create_response = clickup_client.create_task(list_id_fixture, post_data)
         assert create_response.status_code == 200, "Ошибка создания"
         task = create_response.json()
 
@@ -87,10 +91,10 @@ def browser():
 
 
 @pytest.fixture
-def delete_task_if_exists(clickup_client):
+def delete_task_if_exists(clickup_client, list_id_fixture):
     def _delete():
         with allure.step("Проверяем наличие таска и удаляем его, если найден"):
-            response = clickup_client.get_task_list(LIST_ID)
+            response = clickup_client.get_task_list(list_id_fixture)
             task_id = clickup_client.get_task_id_by_name(response, TASK_NAME)
 
             if task_id:

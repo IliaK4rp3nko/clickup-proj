@@ -1,6 +1,5 @@
 import allure
 import pytest
-from tests.config import LIST_ID
 
 
 @allure.feature("Тестирование тасков в ClickUp")
@@ -10,12 +9,11 @@ class TestPosts:
     @allure.description(
         "Создание новой задачи, проверка полей, удаление и проверка удаления"
     )
-    def test_create_and_delete_task(self, clickup_client, post_data):
+    def test_create_and_delete_task(self, clickup_client, post_data, list_id_fixture):
         with allure.step("Создание задачи через API"):
-            create_response = clickup_client.create_task(LIST_ID, post_data)
+            create_response = clickup_client.create_task(list_id_fixture, post_data)
             assert create_response.status_code == 200, (
-                "Ошибка при создании задачи"
-                )
+                "Ошибка при создании задачи")
             task = create_response.json()
             task_id = task["id"]
 
@@ -41,8 +39,8 @@ class TestPosts:
                 )
 
         with allure.step("Проверка совпадения ID списка"):
-            assert int(task["list"]["id"]) == LIST_ID, (
-                f"ID списка не совпадает: ожидалось {LIST_ID}, "
+            assert int(task["list"]["id"]) == int(list_id_fixture), (
+                f"ID списка не совпадает: ожидалось {list_id_fixture}, "
                 f"получено {task['list']['id']}"
             )
 
@@ -92,14 +90,14 @@ class TestPosts:
         ]
     )
     def test_create_task_invalid_data_parametrized(
-        self, clickup_client, invalid_data, request
+        self, clickup_client, invalid_data, request, list_id_fixture
     ):
         allure.dynamic.title(
             f"Невалидный POST: {request.node.callspec.id}"
         )
 
         with allure.step("Отправка запроса с невалидными данными"):
-            response = clickup_client.create_task(LIST_ID, invalid_data)
+            response = clickup_client.create_task(list_id_fixture, invalid_data)
 
         with allure.step("Проверка кода ответа (400 или 422)"):
             assert response.status_code in [400, 422], (
@@ -124,8 +122,7 @@ class TestPosts:
         with allure.step("Получение таска через GET"):
             get_response = clickup_client.get_task(task_id)
             assert get_response.status_code == 200, (
-                "Ошибка при получении таска"
-                )
+                "Ошибка при получении таска")
 
         with allure.step("Проверка совпадения данных"):
             task_data = get_response.json()

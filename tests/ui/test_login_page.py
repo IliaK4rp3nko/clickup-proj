@@ -17,8 +17,7 @@ def test_login(browser):
         login_page.login(CLICKUP_EMAIL, CLICKUP_PASSWORD)
 
         assert profile_page.check_profile_page(), (
-            "Не удалось попасть на страницу профиля"
-        )
+            "Не удалось попасть на страницу профиля")
 
 
 @allure.title("Проверка логина с некорректным паролем")

@@ -1,3 +1,4 @@
+import re
 from playwright.sync_api import expect
 
 
@@ -43,8 +44,8 @@ class BasePage:
     def assert_input_value(self, selector, expected_value):
         expect(self.page.locator(selector)).to_have_value(expected_value)
 
-    def assert_url_is_correct(self, url):
-        expect(self.page).to_have_url(url, timeout=15000)
+    def assert_url_is_correct(self, expected_url_start):
+        expect(self.page).to_have_url(re.compile(f"{expected_url_start}.*"), timeout=10000)
 
     def assert_text_not_on_page(self, text):
         self.page.reload()

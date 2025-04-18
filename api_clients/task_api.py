@@ -11,6 +11,39 @@ class ClickUpClient:
             'Content-Type': 'application/json'
         })
 
+    @allure.step("Получение team_id через API")
+    def get_team_id(self):
+        response = self.session.get(f"{self.base_url}/v2/team")
+        response_json = response.json()
+        try:
+            team_id = response_json["teams"][0]["id"]
+            return team_id
+        except (KeyError, IndexError) as e:
+            raise ValueError("Не удалось получить team_id из ответа API") from e
+
+    @allure.step("Получение folder_id через API")
+    def get_folder_id(self):
+        team_id = self.get_team_id()
+        response = self.session.get(f"{self.base_url}/v2/team/{team_id}/folder")
+        response_json = response.json()
+        try:
+            folder_id = response_json["folders"][0]["id"]
+            return folder_id
+        except (KeyError, IndexError) as e:
+            raise ValueError("Не удалось получить folder_id из ответа API") from e
+
+    @allure.step("Получение list_id через API")
+    def get_list_id(self):
+        folder_id = self.get_folder_id()
+        response = self.session.get(f"{self.base_url}/v2/folder/{folder_id}/list")
+        response_json = response.json()
+        try:
+            list_id = response_json["lists"][0]["id"]
+            return list_id
+        except (KeyError, IndexError)as e:
+            raise ValueError("Не удалось получить list_id из ответа API") from e
+
+
     @allure.step("Создание задачи через API")
     def create_task(self, list_id, task_data):
         return self.session.post(
